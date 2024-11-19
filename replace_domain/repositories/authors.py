@@ -3,8 +3,8 @@ from uuid import UUID
 from datetime import datetime
 from sqlalchemy.engine import Connection
 from sqlalchemy.dialects.postgresql import insert
-from LMS.infra.db.schema import authors
-from LMS.exceptions import ModelNotFoundError
+from replace_domain.infra.db.schema import authors
+from replace_domain.exceptions import ModelNotFoundError
 
 @dataclass
 class Authors:

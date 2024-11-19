@@ -1,7 +1,8 @@
 from fastapi import FastAPI, Request, status, Response
 from fastapi.responses import JSONResponse
-from LMS.controllers.books_controller import books_router, authors_router
-from LMS.exceptions import ModelNotFoundError, ResponseError
+from replace_domain.controllers.books_controller import books_router
+from replace_domain.controllers.authors_controller import authors_router
+from replace_domain.exceptions import ModelNotFoundError, ResponseError
 
 
 app = FastAPI(title='LMS', version='0.0.1')

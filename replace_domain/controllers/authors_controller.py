@@ -1,9 +1,9 @@
 from fastapi import APIRouter, status, Request
 from uuid import UUID
-from LMS.controllers.models.authors import AuthorsRequestBody
-from LMS.repositories.authors import get, get_all, delete, new, Authors
+from replace_domain.controllers.models.authors import AuthorsRequestBody
+from replace_domain.repositories.authors import get, get_all, delete, new, Authors
 from typing import List
-from LMS.infra.db.engine import engine
+from replace_domain.infra.db.engine import engine
 
 authors_router = APIRouter(
     prefix='/authors',
