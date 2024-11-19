@@ -3,8 +3,8 @@ from uuid import UUID
 from datetime import datetime
 from sqlalchemy.engine import Connection
 from sqlalchemy.dialects.postgresql import insert
-from replace_domain.infra.db.schema import authors
 from replace_domain.exceptions import ModelNotFoundError
+from replace_domain.infra.db.schema import authors
 
 @dataclass
 class Authors:
@@ -23,7 +23,8 @@ def get_all(conn: Connection) -> list[Authors]:
     return [Authors(**author) for author in conn.execute(authors.select()).mappings().fetchall()]
 
 def delete(id: UUID, conn: Connection) -> None:
-    conn.execute(authors.delete().where(authors.c.id == get(id, conn).id))
+    author = get(id, conn)    
+    conn.execute(authors.delete().where(authors.c.id == author.id))
 
 def new(name: str, conn: Connection) -> Authors:
     default_retry_map = conn.execute(insert(authors).values(

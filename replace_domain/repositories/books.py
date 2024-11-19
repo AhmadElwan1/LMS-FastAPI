@@ -4,8 +4,9 @@ from datetime import datetime
 from sqlalchemy import update
 from sqlalchemy.engine import Connection
 from sqlalchemy.dialects.postgresql import insert
+from replace_domain.exceptions import BookAlreadyBorrowedError, BookNotBorrowedError, ModelNotFoundError
 from replace_domain.infra.db.schema import books
-from replace_domain.exceptions import BookNotFoundError, ModelNotFoundError
+from replace_domain.repositories.authors import get as get_author
 
 
 @dataclass
@@ -24,7 +25,7 @@ def get(id: UUID, conn: Connection) -> Books:
     if result := conn.execute(books.select().where(books.c.id == id)).first():
         return Books(**result._asdict())
     else:
-        raise BookNotFoundError(id)
+        raise ModelNotFoundError(Books, id)
 
 
 def get_all(conn: Connection) -> list[Books]:
@@ -36,6 +37,7 @@ def delete(id: UUID, conn: Connection) -> None:
 
 
 def new(name: str, description: str, number_of_pages: int, author_id: UUID, conn: Connection) -> Books:
+    author = get_author(author_id, conn)
     default_retry_map = conn.execute(insert(books).values(
         name=name,
         description=description,
@@ -46,13 +48,16 @@ def new(name: str, description: str, number_of_pages: int, author_id: UUID, conn
     return Books(**default_retry_map)
 
 def get_by_author_id(author_id: UUID, conn: Connection) -> list[Books]:
-    return [Books(**book) for book in conn.execute(
-        books.select().where(books.c.author_id == author_id)).mappings().fetchall()]
+    results = conn.execute(
+        books.select().where(books.c.author_id == author_id)
+    ).mappings().fetchall()
+    return [Books(**book) for book in results] if results else (_ for _ in ()).throw(ModelNotFoundError(author_id))
+
 
 def update_book(book_id: UUID, data: dict, conn: Connection) -> dict:
     result = conn.execute(books.select().where(books.c.id == book_id)).first()
     if not result:
-        raise ModelNotFoundError(books, book_id)
+        raise ModelNotFoundError(Books, book_id)
     conn.execute(update(books).where(books.c.id == book_id).values(**data))
     updated_result = conn.execute(books.select().where(books.c.id == book_id)).first()
     return dict(updated_result._mapping)
@@ -60,15 +65,14 @@ def update_book(book_id: UUID, data: dict, conn: Connection) -> dict:
 def borrow_book(book_id: UUID, conn: Connection) -> Books:
     book = get(book_id, conn)
     if book.is_borrowed:
-        raise ValueError(f"Book with ID {book_id} is already borrowed.")
-    
+        raise BookAlreadyBorrowedError(book_id)
     updated_book = update_book(book_id, {"is_borrowed": True}, conn)
     return Books(**updated_book)
 
 def return_book(book_id: UUID, conn: Connection) -> Books:
     book = get(book_id, conn)
     if not book.is_borrowed:
-        raise ValueError(f"Book with ID {book_id} is not currently borrowed.")
+        raise BookNotBorrowedError(book_id)
     
     updated_book = update_book(book_id, {"is_borrowed": False}, conn)
     return Books(**updated_book)
